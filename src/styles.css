@@ -207,6 +207,10 @@ h3 {
   gap: 14px;
 }
 
+.small-stack {
+  gap: 10px;
+}
+
 .card {
   background: #fff;
   border: 1px solid #e0e4dc;
@@ -393,6 +397,93 @@ textarea {
   gap: 14px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-bottom: 20px;
+}
+
+.feature-strip {
+  margin-bottom: 24px;
+}
+
+.lower-grid {
+  margin-top: 20px;
+}
+
+.info-tile {
+  min-height: 132px;
+}
+
+.fineprint {
+  color: #6c7b70;
+  font-size: 0.88rem;
+  margin-bottom: 0;
+}
+
+.section-actions {
+  margin-top: 16px;
+}
+
+.mock-map {
+  background:
+    linear-gradient(135deg, rgba(13, 107, 87, 0.18), rgba(244, 178, 63, 0.2)),
+    repeating-linear-gradient(45deg, #e8eee8 0 12px, #f8faf7 12px 24px);
+  border: 1px solid #d1ddd4;
+  border-radius: 8px;
+  color: #18352c;
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  min-height: 150px;
+  padding: 18px;
+  place-content: center;
+  text-align: center;
+}
+
+.mock-map.wide {
+  margin-bottom: 20px;
+  min-height: 118px;
+}
+
+.mock-map span {
+  color: #0d6b57;
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.unlock-box {
+  display: grid;
+  gap: 12px;
+}
+
+.case-file h3 {
+  margin-top: 16px;
+}
+
+.case-file h3:first-child {
+  margin-top: 0;
+}
+
+.clean-list {
+  color: #415248;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.clean-list li + li {
+  margin-top: 8px;
+}
+
+.mini-row {
+  background: #f8faf7;
+  border: 1px solid #e0e7df;
+  border-radius: 8px;
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+}
+
+.mini-row span {
+  color: #6c7b70;
+  font-size: 0.92rem;
 }
 
 .detail dl {

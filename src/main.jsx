@@ -6,6 +6,8 @@ import {
   cases as caseSeed,
   doctors,
   hospitals,
+  pathlabs,
+  pharmacies,
   reviews,
   schemes,
 } from "./mockData";
@@ -86,7 +88,7 @@ function Home() {
         <h1>Patient Case-Taking Platform</h1>
         <p>
           A clickable prototype for raising Ayush care cases, discovering verified hospitals,
-          booking appointments, tracking case progress, and exploring support schemes.
+          booking appointments, tracking protected case files, and exploring support schemes.
         </p>
         <div className="actions">
           <Link className="btn primary" to="/login">Login</Link>
@@ -97,6 +99,7 @@ function Home() {
         <Metric label="Active Cases" value="3" />
         <Metric label="Hospitals Listed" value="6" />
         <Metric label="Avg Response" value="18h" />
+        <Metric label="Demo Integrations" value="Maps + SBI MOPS" />
       </div>
     </section>
   );
@@ -116,7 +119,9 @@ function AuthPage({ mode }) {
         <button className="btn primary full" type="submit">{mode}</button>
         <div className="divider">or</div>
         <button className="btn ghost full" type="button">Continue with Google</button>
+        <button className="btn ghost full" type="button">Continue with Facebook</button>
         <button className="btn ghost full" type="button">Continue with DigiLocker</button>
+        <p className="fineprint">DigiLocker placeholder can later fetch Ayushman card and identity documents.</p>
         <p className="muted">
           {isSignup ? "Already registered?" : "New to the platform?"}{" "}
           <Link to={isSignup ? "/login" : "/signup"}>{isSignup ? "Login" : "Create account"}</Link>
@@ -129,6 +134,10 @@ function AuthPage({ mode }) {
 function Dashboard({ data }) {
   return (
     <Page title="Patient Dashboard" action={<Link className="btn primary" to="/cases/new">Raise New Case</Link>}>
+      <div className="grid cards compact feature-strip">
+        <InfoTile title="Security Ready" text="Prototype marks case files as password-protected and audit-ready for ISO 27001, CERT-In, and ABDM-style controls." />
+        <InfoTile title="Nearby Matching" text="Raised cases can be discovered by hospitals using dummy distance, region, and expertise matching." />
+      </div>
       <div className="grid two">
         <section>
           <h2>Active Cases</h2>
@@ -160,7 +169,7 @@ function Dashboard({ data }) {
 
 function NewCase({ data }) {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ title: "", symptoms: "", location: "" });
+  const [form, setForm] = useState({ title: "", symptoms: "", location: "", expertise: "Ayurveda" });
   const update = (event) => setForm({ ...form, [event.target.name]: event.target.value });
 
   function submit(event) {
@@ -171,8 +180,15 @@ function NewCase({ data }) {
       title: form.title || "New Consultation Request",
       symptoms: form.symptoms || "Symptoms shared through case form.",
       location: form.location || "Not specified",
+      requiredExpertise: [form.expertise],
       status: "raised",
       createdAt: new Date().toISOString(),
+      caseFile: {
+        passwordHint: "Demo password: case123",
+        reports: ["Uploaded report placeholder"],
+        symptomImages: ["Symptom image placeholder"],
+        treatmentNotes: ["Case file created and locked for authorized users."],
+      },
       timeline: [
         { at: "Just now", label: "Case raised", note: "Patient submitted the initial case details." },
         { at: "Pending", label: "Triage review", note: "Nearest Ayush case desk will review symptoms." },
@@ -187,8 +203,12 @@ function NewCase({ data }) {
       <form className="card form-grid" onSubmit={submit}>
         <label>Case title<input name="title" value={form.title} onChange={update} placeholder="Recurring migraine and fatigue" /></label>
         <label>Symptoms<textarea name="symptoms" value={form.symptoms} onChange={update} placeholder="Describe symptoms, duration, and severity" /></label>
+        <label>Required expertise<select name="expertise" value={form.expertise} onChange={update}>
+          <option>Ayurveda</option><option>Panchakarma</option><option>Siddha</option><option>Unani</option><option>Yoga</option><option>Naturopathy</option><option>Dermatology</option>
+        </select></label>
         <label>Location<input name="location" value={form.location} onChange={update} placeholder="City, State" /></label>
         <label>Attach reports<input type="file" /></label>
+        <p className="fineprint">Google Maps, file upload storage, and location permissions are represented as UI-only placeholders.</p>
         <button className="btn primary" type="submit">Submit Case</button>
       </form>
     </Page>
@@ -199,6 +219,10 @@ function CaseDetail({ data }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const item = data.cases.find((caseItem) => caseItem.id === id) || data.cases[0];
+  const [unlocked, setUnlocked] = useState(false);
+  const nearbyHospitals = hospitals
+    .filter((hospital) => item.requiredExpertise?.some((tag) => hospital.specialties.includes(tag) || hospital.expertiseBranches.includes(tag)))
+    .slice(0, 3);
   return (
     <Page title={item.title} action={<button className="btn primary" onClick={() => navigate("/hospitals")}>Apply to Hospital</button>}>
       <div className="grid two">
@@ -207,12 +231,42 @@ function CaseDetail({ data }) {
           <p>{item.symptoms}</p>
           <dl>
             <dt>Location</dt><dd>{item.location}</dd>
+            <dt>Expertise Needed</dt><dd>{item.requiredExpertise?.join(", ")}</dd>
             <dt>Created</dt><dd>{new Date(item.createdAt).toLocaleDateString()}</dd>
           </dl>
         </section>
         <section>
           <h2>Progress Log</h2>
           <Timeline items={item.timeline} />
+        </section>
+      </div>
+      <div className="grid two lower-grid">
+        <section className="card">
+          <h2>Password-Protected Case File</h2>
+          {!unlocked ? (
+            <div className="unlock-box">
+              <p className="muted">{item.caseFile?.passwordHint}</p>
+              <input type="password" placeholder="Enter demo password" />
+              <button className="btn primary" onClick={() => setUnlocked(true)}>Unlock File</button>
+            </div>
+          ) : (
+            <CaseFile file={item.caseFile} />
+          )}
+        </section>
+        <section className="card">
+          <h2>Nearby Hospital Matches</h2>
+          <div className="mock-map">
+            <span>Google Maps API placeholder</span>
+            <strong>{item.location}</strong>
+          </div>
+          <div className="stack small-stack">
+            {nearbyHospitals.map((hospital) => (
+              <Link key={hospital.id} to={`/hospitals/${hospital.id}`} className="mini-row">
+                <strong>{hospital.name}</strong>
+                <span>{hospital.distanceKm} km • {hospital.specialties.slice(0, 2).join(", ")}</span>
+              </Link>
+            ))}
+          </div>
         </section>
       </div>
     </Page>
@@ -222,18 +276,23 @@ function CaseDetail({ data }) {
 function Hospitals() {
   const [specialty, setSpecialty] = useState("All");
   const [region, setRegion] = useState("All");
-  const specialties = ["All", ...new Set(hospitals.flatMap((hospital) => hospital.specialties))];
+  const specialties = ["All", ...new Set(hospitals.flatMap((hospital) => [...hospital.specialties, ...hospital.expertiseBranches]))];
   const regions = ["All", ...new Set(hospitals.map((hospital) => hospital.region))];
-  const filtered = hospitals.filter((hospital) =>
-    (specialty === "All" || hospital.specialties.includes(specialty)) &&
-    (region === "All" || hospital.region === region)
-  );
+  const filtered = hospitals.filter((hospital) => {
+    const matchesExpertise = specialty === "All" || hospital.specialties.includes(specialty) || hospital.expertiseBranches.includes(specialty);
+    const matchesRegion = region === "All" || hospital.region === region;
+    return matchesExpertise && matchesRegion;
+  });
 
   return (
     <Page title="Browse Hospitals">
       <div className="filters card">
-        <label>Specialty<select value={specialty} onChange={(event) => setSpecialty(event.target.value)}>{specialties.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <label>Expertise / branch<select value={specialty} onChange={(event) => setSpecialty(event.target.value)}>{specialties.map((item) => <option key={item}>{item}</option>)}</select></label>
         <label>Region<select value={region} onChange={(event) => setRegion(event.target.value)}>{regions.map((item) => <option key={item}>{item}</option>)}</select></label>
+      </div>
+      <div className="mock-map wide">
+        <span>Google Maps API placeholder</span>
+        <strong>Nearby Ayush hospitals rendered from dummy coordinates</strong>
       </div>
       <div className="grid cards">
         {filtered.map((hospital) => <HospitalCard hospital={hospital} key={hospital.id} />)}
@@ -269,14 +328,38 @@ function HospitalProfile({ data }) {
         <section className="card detail">
           <p>{hospital.description}</p>
           <p><strong>{hospital.location}</strong> • {hospital.rating} stars</p>
+          <p className="muted">{hospital.distanceKm} km away • {hospital.mapZone}</p>
           <TagRow tags={hospital.specialties} />
-          <button className="btn secondary" onClick={() => setPaid(true)}>Pay Now</button>
-          {paid && <p className="success">Dummy payment successful. Receipt generated for demo.</p>}
+          <TagRow tags={hospital.expertiseBranches} />
+          <div className="actions section-actions">
+            <button className="btn secondary" onClick={() => setPaid(true)}>Pay Now via SBI MOPS</button>
+            <Link className="btn ghost" to={`/reviews/${hospital.id}`}>Review Hospital</Link>
+          </div>
+          {paid && <p className="success">Dummy SBI MOPS payment successful. Receipt generated for demo.</p>}
         </section>
         <section>
           <h2>Doctors</h2>
           <div className="stack">
             {hospitalDoctors.map((doctor) => <DoctorMini doctor={doctor} key={doctor.id} />)}
+          </div>
+        </section>
+      </div>
+      <div className="grid cards lower-grid">
+        <InfoTile title="Hospital Conditions" text={`Cleanliness ${hospital.conditionAudit.cleanliness}/5 • Waste ${hospital.conditionAudit.wasteManagement}/5 • Staff ${hospital.conditionAudit.staffBehaviour}/5`} />
+        <InfoTile title="Stay-In Rooms" text={`${hospital.stayRooms.hospital} hospital rooms and ${hospital.stayRooms.nearby} nearby locality stays available for attendants.`} />
+        <InfoTile title="Certification" text={hospital.certification} />
+      </div>
+      <div className="grid two lower-grid">
+        <section className="card">
+          <h2>Extraordinary Treatments</h2>
+          <ul className="clean-list">{hospital.treatmentShowcases.map((item) => <li key={item}>{item}</li>)}</ul>
+        </section>
+        <section className="card">
+          <h2>Hospital-Lab-Pharmacy Network</h2>
+          <p>{hospital.networkPartners.join(" • ")}</p>
+          <div className="actions">
+            <button className="btn ghost">Request Pathlab Scan</button>
+            <button className="btn ghost">Request Pharma Supplies</button>
           </div>
         </section>
       </div>
@@ -294,7 +377,7 @@ function DoctorProfile() {
         <p>{doctor.bio}</p>
         <dl>
           <dt>Qualification</dt><dd>{doctor.qualification}</dd>
-          <dt>Specialties</dt><dd>{doctor.specialties.join(", ")}</dd>
+          <dt>Doctor Expertise</dt><dd>{doctor.specialties.join(", ")}</dd>
           <dt>Rating</dt><dd>{doctor.rating} stars</dd>
         </dl>
       </section>
@@ -330,6 +413,20 @@ function Appointments({ data }) {
           <button className="btn primary" type="submit">Confirm Booking</button>
         </form>
       )}
+      <div className="grid two lower-grid">
+        <section className="card">
+          <h2>Book Scans</h2>
+          <div className="stack small-stack">
+            {pathlabs.map((lab) => <div className="mini-row" key={lab.id}><strong>{lab.name}</strong><span>{lab.services.join(", ")} • ETA {lab.eta}</span></div>)}
+          </div>
+        </section>
+        <section className="card">
+          <h2>Pharmacy Supply Requests</h2>
+          <div className="stack small-stack">
+            {pharmacies.map((pharmacy) => <div className="mini-row" key={pharmacy.id}><strong>{pharmacy.name}</strong><span>{pharmacy.stock} • {pharmacy.delivery}</span></div>)}
+          </div>
+        </section>
+      </div>
       <div className="grid cards">
         {data.appointments.map((appointment) => <AppointmentCard appointment={appointment} key={appointment.id} />)}
       </div>
@@ -369,6 +466,10 @@ function HospitalPanel({ data }) {
   };
   return (
     <Page title="Hospital Panel">
+      <div className="grid two lower-grid">
+        <InfoTile title="Nearby Raised Cases" text="Hospitals can discover cases by region, distance, urgency, and required branch of Ayush expertise." />
+        <InfoTile title="Operations Requests" text="Panel placeholders cover document filling, pathlab coordination, scans, and immediate pharmaceutical supplies." />
+      </div>
       <div className="grid cards">
         {data.applications.map((app) => {
           const caseItem = data.cases.find((item) => item.id === app.caseId);
@@ -378,6 +479,7 @@ function HospitalPanel({ data }) {
               <span className={`pill ${app.status}`}>{statusLabels[app.status]}</span>
               <h3>{app.patientName}</h3>
               <p>{caseItem?.title || "New case application"} for {hospital?.name}</p>
+              <TagRow tags={caseItem?.requiredExpertise || []} />
               <div className="actions">
                 <button className="btn primary" onClick={() => updateStatus(app.id, "accepted")}>Accept</button>
                 <button className="btn danger" onClick={() => updateStatus(app.id, "rejected")}>Reject</button>
@@ -406,6 +508,28 @@ function ReviewForm() {
   );
 }
 
+function CaseFile({ file }) {
+  return (
+    <div className="case-file">
+      <h3>Reports</h3>
+      <ul className="clean-list">{file?.reports.map((item) => <li key={item}>{item}</li>)}</ul>
+      <h3>Symptom Images</h3>
+      <ul className="clean-list">{file?.symptomImages.map((item) => <li key={item}>{item}</li>)}</ul>
+      <h3>Treatment Notes</h3>
+      <ul className="clean-list">{file?.treatmentNotes.map((item) => <li key={item}>{item}</li>)}</ul>
+    </div>
+  );
+}
+
+function InfoTile({ title, text }) {
+  return (
+    <article className="card info-tile">
+      <h3>{title}</h3>
+      <p>{text}</p>
+    </article>
+  );
+}
+
 function Page({ title, action, children }) {
   return (
     <section className="page">
@@ -424,7 +548,9 @@ function HospitalCard({ hospital }) {
       <div className="rating">{hospital.rating} ★</div>
       <h3>{hospital.name}</h3>
       <p>{hospital.location}</p>
+      <p className="muted">{hospital.distanceKm} km • {hospital.certification}</p>
       <TagRow tags={hospital.specialties} />
+      <TagRow tags={hospital.expertiseBranches.slice(0, 3)} />
     </Link>
   );
 }
