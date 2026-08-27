@@ -1,6 +1,7 @@
 export const patients = [
-  { id: "patient-1", name: "Meera Sharma", age: 34, location: "Jaipur, Rajasthan" },
-  { id: "patient-2", name: "Arjun Rao", age: 42, location: "Bengaluru, Karnataka" },
+  { id: "patient-1", name: "Meera Sharma", age: 34, gender: "F", location: "Jaipur, Rajasthan", ayushmanEligible: true, insurer: "PM-JAY linked family card" },
+  { id: "patient-2", name: "Arjun Rao", age: 42, gender: "M", location: "Bengaluru, Karnataka", ayushmanEligible: false, insurer: "Employer group insurance" },
+  { id: "patient-3", name: "Ishaan Verma", age: 17, gender: "M", location: "Jaipur, Rajasthan", ayushmanEligible: true, insurer: "State health assurance plan" },
 ];
 
 export const hospitals = [
@@ -184,8 +185,19 @@ export const cases = [
     title: "Chronic joint stiffness",
     symptoms: "Morning stiffness, knee discomfort, and reduced mobility for three months.",
     location: "Jaipur, Rajasthan",
+    urgency: "Medium",
     requiredExpertise: ["Ayurveda", "Panchakarma", "Pain Management"],
     status: "in-progress",
+    hospitalChoiceList: ["hosp-1", "hosp-2", "hosp-3"],
+    currentHospitalId: "hosp-1",
+    currentDoctorId: "doc-1",
+    privacy: "Only patient and current doctor can unlock. Labs can upload reports without reading the file.",
+    transferHistory: ["Patient raised case", "H1 accepted case", "Current owner: Dr. Kavita Menon at H1"],
+    payments: [
+      { label: "Registration", amount: "₹250", status: "Paid", channel: "Dummy SBI MOPS" },
+      { label: "Therapy deposit", amount: "₹1,500", status: "Due", channel: "Dummy SBI MOPS" },
+    ],
+    vitals: ["Weight 61 kg on 20 Aug", "Pain score 8/10 to 5/10", "Operated area photos not applicable"],
     createdAt: "2026-08-20T10:30:00.000Z",
     caseFile: {
       passwordHint: "Demo password: case123",
@@ -198,6 +210,7 @@ export const cases = [
       { at: "20 Aug, 02:15 PM", label: "Triage completed", note: "Marked suitable for Ayurveda OPD review." },
       { at: "21 Aug, 09:20 AM", label: "Hospital shortlisted", note: "National Institute of Ayurveda Hospital recommended." },
       { at: "22 Aug, 11:00 AM", label: "Doctor assigned", note: "Dr. Kavita Menon reviewing the case." },
+      { at: "26 Aug, 03:40 PM", label: "Lab upload", note: "Jaipur Ayush Pathlab pushed inflammation marker report into the locked file." },
     ],
   },
   {
@@ -206,8 +219,18 @@ export const cases = [
     title: "Recurring acidity and sleep disturbance",
     symptoms: "Digestive discomfort with irregular sleep and stress-triggered flare-ups.",
     location: "Bengaluru, Karnataka",
+    urgency: "Low",
     requiredExpertise: ["Unani", "Digestive Care", "Yoga"],
     status: "raised",
+    hospitalChoiceList: ["hosp-5", "hosp-3", "hosp-6"],
+    currentHospitalId: null,
+    currentDoctorId: null,
+    privacy: "Awaiting pickup. Full case file remains locked to patient until a doctor accepts.",
+    transferHistory: ["Patient raised case", "Visible to matching hospitals by specialty and region"],
+    payments: [
+      { label: "Consultation estimate", amount: "₹500-₹900", status: "Pending approval", channel: "Dummy SBI MOPS" },
+    ],
+    vitals: ["Weight not updated", "Sleep score screenshot attached"],
     createdAt: "2026-08-23T15:45:00.000Z",
     caseFile: {
       passwordHint: "Demo password: case123",
@@ -227,8 +250,19 @@ export const cases = [
     title: "Skin allergy follow-up",
     symptoms: "Seasonal flare-up with itching and mild inflammation.",
     location: "Chennai, Tamil Nadu",
+    urgency: "Low",
     requiredExpertise: ["Siddha", "Dermatology"],
     status: "closed",
+    hospitalChoiceList: ["hosp-4"],
+    currentHospitalId: "hosp-4",
+    currentDoctorId: "doc-5",
+    privacy: "Closed file retained for patient history with audit timestamps.",
+    transferHistory: ["Patient raised case", "H4 accepted", "Case closed by patient confirmation"],
+    payments: [
+      { label: "Consultation", amount: "₹350", status: "Paid", channel: "Dummy SBI MOPS" },
+      { label: "Medicine pickup", amount: "₹420", status: "Paid", channel: "Dummy SBI MOPS" },
+    ],
+    vitals: ["Weight 58 kg", "Before and after symptom images attached"],
     createdAt: "2026-08-12T09:00:00.000Z",
     caseFile: {
       passwordHint: "Demo password: case123",
@@ -243,6 +277,40 @@ export const cases = [
       { at: "22 Aug, 10:00 AM", label: "Case closed", note: "Patient reported improvement during follow-up." },
     ],
   },
+  {
+    id: "case-104",
+    patientId: "patient-3",
+    title: "Severe joint pain with fever",
+    symptoms: "17M with acute knee swelling, high pain, fever, and difficulty walking.",
+    location: "Jaipur, Rajasthan",
+    urgency: "High",
+    requiredExpertise: ["Orthopedics", "Rheumatology support", "Pain Management"],
+    status: "in-progress",
+    hospitalChoiceList: ["hosp-1", "hosp-2"],
+    currentHospitalId: "hosp-2",
+    currentDoctorId: "doc-3",
+    privacy: "Transferred case. Only patient and Dr. Nisha Verma can access the current file.",
+    transferHistory: ["H1 accepted", "Lab suggested septic arthritis markers", "H1 transferred to H2 rheumatology support", "D2 accepted transfer"],
+    payments: [
+      { label: "Emergency consult", amount: "₹700", status: "Paid", channel: "Dummy SBI MOPS" },
+      { label: "Lab culture", amount: "₹1,200", status: "Paid", channel: "Dummy SBI MOPS" },
+      { label: "Specialist follow-up", amount: "₹900", status: "Due", channel: "Dummy SBI MOPS" },
+    ],
+    vitals: ["Weight 52 kg on intake", "Fever 101.4 F", "Operated area photo pending"],
+    createdAt: "2026-08-24T08:15:00.000Z",
+    caseFile: {
+      passwordHint: "Demo password: case123",
+      reports: ["Synovial fluid culture.pdf", "CBC and CRP report.jpg"],
+      symptomImages: ["right-knee-swelling-day1.jpg", "mobility-video-placeholder.mp4"],
+      treatmentNotes: ["Initial medicines did not improve symptoms.", "Transfer requested by H1 and accepted by H2 specialist."],
+    },
+    timeline: [
+      { at: "24 Aug, 08:15 AM", label: "Case raised", note: "Patient selected ortho/rheumatology and shortlisted H1 first." },
+      { at: "24 Aug, 11:30 AM", label: "H1 accepted", note: "Hospital cannot drop the case after pickup; transfer is the only hospital exit path." },
+      { at: "25 Aug, 09:10 AM", label: "Lab report added", note: "Lab uploaded diagnostic report without case-file read permission." },
+      { at: "26 Aug, 01:00 PM", label: "Transfer accepted", note: "H2 specialist became current authorized doctor." },
+    ],
+  },
 ];
 
 export const pathlabs = [
@@ -255,6 +323,24 @@ export const pharmacies = [
   { id: "pharm-1", name: "Swasthya Pharmacy", stock: "Ayush essentials available", delivery: "Same-day" },
   { id: "pharm-2", name: "Jan Aushadhi Partner Counter", stock: "Generic and Ayush support medicines", delivery: "Pickup" },
   { id: "pharm-3", name: "Ayur Wellness Pharmacy", stock: "Therapy kit and wellness bundle", delivery: "2 hrs" },
+];
+
+export const accommodations = [
+  { id: "stay-1", name: "NIA Attendant Rooms", type: "Hospital stay-in", city: "Jaipur", available: 12, price: "₹700/night" },
+  { id: "stay-2", name: "Civil Lines Family Stay", type: "Nearby locality", city: "Jaipur", available: 18, price: "₹1,100/night" },
+  { id: "stay-3", name: "Sarita Vihar Care Homes", type: "Nearby locality", city: "New Delhi", available: 27, price: "₹1,300/night" },
+];
+
+export const networkChains = [
+  { id: "net-1", name: "North Ayush Referral Grid", members: "4 hospitals, 3 labs, 5 pharmacies", focus: "Transfers, report routing, pharmacy fulfillment" },
+  { id: "net-2", name: "Public-Private Wellness Desk", members: "2 government centers, 4 private clinics", focus: "Scheme discovery, subsidized packages, referrals" },
+];
+
+export const complianceChecklist = [
+  "Role-based access for patient, current doctor, hospital desk, lab uploader, pharmacy, and attendant",
+  "Encrypted case-file storage with password gate, audit logs, timestamps, and transfer history",
+  "ABDM/DigiLocker-ready identity placeholders for Ayushman card and e-documents",
+  "Security certification roadmap: ISO 27001, CERT-In audit, VAPT, DPDP consent records",
 ];
 
 export const appointments = [

@@ -3,10 +3,14 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Link, NavLink, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import {
   appointments as appointmentSeed,
+  accommodations,
   cases as caseSeed,
+  complianceChecklist,
   doctors,
   hospitals,
+  networkChains,
   pathlabs,
+  patients,
   pharmacies,
   reviews,
   schemes,
@@ -28,6 +32,7 @@ function App() {
     { id: "app-1", caseId: "case-101", patientName: "Meera Sharma", hospitalId: "hosp-1", status: "raised" },
     { id: "app-2", caseId: "case-102", patientName: "Arjun Rao", hospitalId: "hosp-2", status: "raised" },
     { id: "app-3", caseId: "case-103", patientName: "Fatima Khan", hospitalId: "hosp-4", status: "raised" },
+    { id: "app-4", caseId: "case-104", patientName: "Ishaan Verma", hospitalId: "hosp-2", status: "accepted" },
   ]);
 
   const data = useMemo(
@@ -50,6 +55,7 @@ function App() {
           <Route path="/doctors/:id" element={<DoctorProfile />} />
           <Route path="/appointments" element={<Appointments data={data} />} />
           <Route path="/schemes" element={<Schemes />} />
+          <Route path="/coordination" element={<CoordinationHub />} />
           <Route path="/hospital/dashboard" element={<HospitalPanel data={data} />} />
           <Route path="/reviews/:targetId" element={<ReviewForm />} />
           <Route path="*" element={<NotFound />} />
@@ -72,6 +78,7 @@ function Shell({ children }) {
           <NavLink to="/hospitals">Hospitals</NavLink>
           <NavLink to="/appointments">Appointments</NavLink>
           <NavLink to="/schemes">Schemes</NavLink>
+          <NavLink to="/coordination">Care Network</NavLink>
           <NavLink to="/hospital/dashboard">Hospital Panel</NavLink>
         </nav>
       </header>
@@ -87,8 +94,9 @@ function Home() {
         <p className="eyebrow">SIH26047 • Ministry of Ayush theme</p>
         <h1>Patient Case-Taking Platform</h1>
         <p>
-          A clickable prototype for raising Ayush care cases, discovering verified hospitals,
-          booking appointments, tracking protected case files, and exploring support schemes.
+          A clickable prototype for raising Ayush care cases, hospital pickup and transfer,
+          locked treatment files, DigiLocker-ready paperwork, dummy SBI payments, attendant stays,
+          labs, pharmacies, reviews, and scheme matching.
         </p>
         <div className="actions">
           <Link className="btn primary" to="/login">Login</Link>
@@ -96,10 +104,10 @@ function Home() {
         </div>
       </div>
       <div className="hero-panel">
-        <Metric label="Active Cases" value="3" />
+        <Metric label="Active Cases" value="4" />
         <Metric label="Hospitals Listed" value="6" />
         <Metric label="Avg Response" value="18h" />
-        <Metric label="Demo Integrations" value="Maps + SBI MOPS" />
+        <Metric label="Demo Integrations" value="Maps, DigiLocker, SBI" />
       </div>
     </section>
   );
@@ -114,6 +122,8 @@ function AuthPage({ mode }) {
         <p className="eyebrow">Prototype access</p>
         <h1>{mode}</h1>
         {isSignup && <input placeholder="Full name" />}
+        {isSignup && <input placeholder="Age / gender, e.g. 17M" />}
+        {isSignup && <input placeholder="City, state" />}
         <input type="email" placeholder="Email or mobile number" />
         <input type="password" placeholder="Password" />
         <button className="btn primary full" type="submit">{mode}</button>
@@ -121,7 +131,7 @@ function AuthPage({ mode }) {
         <button className="btn ghost full" type="button">Continue with Google</button>
         <button className="btn ghost full" type="button">Continue with Facebook</button>
         <button className="btn ghost full" type="button">Continue with DigiLocker</button>
-        <p className="fineprint">DigiLocker placeholder can later fetch Ayushman card and identity documents.</p>
+        <p className="fineprint">DigiLocker placeholder can later fetch Ayushman card, identity documents, and consented health paperwork.</p>
         <p className="muted">
           {isSignup ? "Already registered?" : "New to the platform?"}{" "}
           <Link to={isSignup ? "/login" : "/signup"}>{isSignup ? "Login" : "Create account"}</Link>
@@ -132,11 +142,21 @@ function AuthPage({ mode }) {
 }
 
 function Dashboard({ data }) {
+  const featuredCase = data.cases.find((item) => item.id === "case-104") || data.cases[0];
   return (
     <Page title="Patient Dashboard" action={<Link className="btn primary" to="/cases/new">Raise New Case</Link>}>
-      <div className="grid cards compact feature-strip">
+      <div className="alert-band feature-strip">
+        <div>
+          <span className="eyebrow">Live workflow demo</span>
+          <h2>{featuredCase.title}</h2>
+          <p>{featuredCase.transferHistory?.join(" -> ")}</p>
+        </div>
+        <Link className="btn secondary" to={`/cases/${featuredCase.id}`}>Open Case File</Link>
+      </div>
+      <div className="grid cards feature-strip">
         <InfoTile title="Security Ready" text="Prototype marks case files as password-protected and audit-ready for ISO 27001, CERT-In, and ABDM-style controls." />
         <InfoTile title="Nearby Matching" text="Raised cases can be discovered by hospitals using dummy distance, region, and expertise matching." />
+        <InfoTile title="Guest-to-Verified Flow" text="Patients can browse as guests, then login with own auth, Google/Facebook, or DigiLocker before raising a case." />
       </div>
       <div className="grid two">
         <section>
@@ -149,7 +169,7 @@ function Dashboard({ data }) {
                   <h3>{item.title}</h3>
                   <p>{item.symptoms}</p>
                 </div>
-                <span className="muted">{item.location}</span>
+                <span className="muted">{item.location} • {item.urgency} urgency</span>
               </Link>
             ))}
           </div>
@@ -161,6 +181,17 @@ function Dashboard({ data }) {
               <AppointmentCard appointment={appt} key={appt.id} />
             ))}
           </div>
+          <div className="card lower-grid">
+            <h2>Attendant Stay</h2>
+            <div className="stack small-stack">
+              {accommodations.slice(0, 2).map((stay) => (
+                <div className="mini-row" key={stay.id}>
+                  <strong>{stay.name}</strong>
+                  <span>{stay.type} • {stay.available} available • {stay.price}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
       </div>
     </Page>
@@ -169,7 +200,15 @@ function Dashboard({ data }) {
 
 function NewCase({ data }) {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ title: "", symptoms: "", location: "", expertise: "Ayurveda" });
+  const [form, setForm] = useState({
+    title: "",
+    symptoms: "",
+    location: "",
+    expertise: "Ayurveda",
+    urgency: "Medium",
+    choice1: hospitals[0].id,
+    choice2: hospitals[1].id,
+  });
   const update = (event) => setForm({ ...form, [event.target.name]: event.target.value });
 
   function submit(event) {
@@ -180,8 +219,16 @@ function NewCase({ data }) {
       title: form.title || "New Consultation Request",
       symptoms: form.symptoms || "Symptoms shared through case form.",
       location: form.location || "Not specified",
+      urgency: form.urgency,
       requiredExpertise: [form.expertise],
       status: "raised",
+      hospitalChoiceList: [form.choice1, form.choice2].filter(Boolean),
+      currentHospitalId: null,
+      currentDoctorId: null,
+      privacy: "Patient-only until a hospital doctor accepts. Labs can upload reports without reading the case file.",
+      transferHistory: ["Patient raised case", "Visible to preferred hospitals and matching hospitals"],
+      payments: [{ label: "Initial estimate", amount: "To be quoted", status: "Pending approval", channel: "Dummy SBI MOPS" }],
+      vitals: ["Weight pending", "Symptom images pending"],
       createdAt: new Date().toISOString(),
       caseFile: {
         passwordHint: "Demo password: case123",
@@ -204,11 +251,14 @@ function NewCase({ data }) {
         <label>Case title<input name="title" value={form.title} onChange={update} placeholder="Recurring migraine and fatigue" /></label>
         <label>Symptoms<textarea name="symptoms" value={form.symptoms} onChange={update} placeholder="Describe symptoms, duration, and severity" /></label>
         <label>Required expertise<select name="expertise" value={form.expertise} onChange={update}>
-          <option>Ayurveda</option><option>Panchakarma</option><option>Siddha</option><option>Unani</option><option>Yoga</option><option>Naturopathy</option><option>Dermatology</option>
+          <option>Ayurveda</option><option>Panchakarma</option><option>Siddha</option><option>Unani</option><option>Yoga</option><option>Naturopathy</option><option>Dermatology</option><option>Orthopedics</option><option>Rheumatology support</option>
         </select></label>
+        <label>Urgency<select name="urgency" value={form.urgency} onChange={update}><option>Low</option><option>Medium</option><option>High</option></select></label>
         <label>Location<input name="location" value={form.location} onChange={update} placeholder="City, State" /></label>
+        <label>Preferred hospital, choice 1<select name="choice1" value={form.choice1} onChange={update}>{hospitals.map((hospital) => <option value={hospital.id} key={hospital.id}>{hospital.name}</option>)}</select></label>
+        <label>Preferred hospital, choice 2<select name="choice2" value={form.choice2} onChange={update}>{hospitals.map((hospital) => <option value={hospital.id} key={hospital.id}>{hospital.name}</option>)}</select></label>
         <label>Attach reports<input type="file" /></label>
-        <p className="fineprint">Google Maps, file upload storage, and location permissions are represented as UI-only placeholders.</p>
+        <p className="fineprint">Google Maps, file upload storage, DigiLocker documents, and location permissions are represented as UI-only placeholders.</p>
         <button className="btn primary" type="submit">Submit Case</button>
       </form>
     </Page>
@@ -223,6 +273,10 @@ function CaseDetail({ data }) {
   const nearbyHospitals = hospitals
     .filter((hospital) => item.requiredExpertise?.some((tag) => hospital.specialties.includes(tag) || hospital.expertiseBranches.includes(tag)))
     .slice(0, 3);
+  const patient = patients.find((entry) => entry.id === item.patientId);
+  const currentDoctor = doctors.find((doctor) => doctor.id === item.currentDoctorId);
+  const currentHospital = hospitals.find((hospital) => hospital.id === item.currentHospitalId);
+  const choiceHospitals = item.hospitalChoiceList?.map((hospitalId) => hospitals.find((hospital) => hospital.id === hospitalId)).filter(Boolean) || [];
   return (
     <Page title={item.title} action={<button className="btn primary" onClick={() => navigate("/hospitals")}>Apply to Hospital</button>}>
       <div className="grid two">
@@ -230,8 +284,11 @@ function CaseDetail({ data }) {
           <span className={`pill ${item.status}`}>{statusLabels[item.status]}</span>
           <p>{item.symptoms}</p>
           <dl>
+            <dt>Patient</dt><dd>{patient ? `${patient.name}, ${patient.age}${patient.gender}` : "Patient profile"}</dd>
             <dt>Location</dt><dd>{item.location}</dd>
+            <dt>Urgency</dt><dd>{item.urgency}</dd>
             <dt>Expertise Needed</dt><dd>{item.requiredExpertise?.join(", ")}</dd>
+            <dt>Current Doctor</dt><dd>{currentDoctor ? `${currentDoctor.name}, ${currentHospital?.name}` : "Awaiting hospital pickup"}</dd>
             <dt>Created</dt><dd>{new Date(item.createdAt).toLocaleDateString()}</dd>
           </dl>
         </section>
@@ -243,6 +300,7 @@ function CaseDetail({ data }) {
       <div className="grid two lower-grid">
         <section className="card">
           <h2>Password-Protected Case File</h2>
+          <p className="fineprint">{item.privacy}</p>
           {!unlocked ? (
             <div className="unlock-box">
               <p className="muted">{item.caseFile?.passwordHint}</p>
@@ -266,6 +324,51 @@ function CaseDetail({ data }) {
                 <span>{hospital.distanceKm} km • {hospital.specialties.slice(0, 2).join(", ")}</span>
               </Link>
             ))}
+          </div>
+        </section>
+      </div>
+      <div className="grid cards lower-grid">
+        <InfoTile title="Choice List" text={choiceHospitals.map((hospital) => hospital.name).join(" -> ") || "No hospital choice list yet."} />
+        <InfoTile title="Eligible Schemes" text={patient?.ayushmanEligible ? `${patient.insurer}; PM-JAY and state support shown before payment agreement.` : `${patient?.insurer || "Insurance"} and private bundles shown before payment.`} />
+        <InfoTile title="Hospital Rule" text="A hospital that picks a case cannot drop it. It can only request transfer; only the patient can withdraw." />
+      </div>
+      <div className="grid two lower-grid">
+        <section className="card">
+          <h2>Payments</h2>
+          <div className="stack small-stack">
+            {item.payments?.map((payment) => (
+              <div className="payment-row" key={`${payment.label}-${payment.amount}`}>
+                <div>
+                  <strong>{payment.label}</strong>
+                  <span>{payment.channel}</span>
+                </div>
+                <div>
+                  <strong>{payment.amount}</strong>
+                  <span>{payment.status}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button className="btn secondary section-actions">Pay Next Installment</button>
+        </section>
+        <section className="card">
+          <h2>Transfer & Access History</h2>
+          <ul className="clean-list">{item.transferHistory?.map((entry) => <li key={entry}>{entry}</li>)}</ul>
+        </section>
+      </div>
+      <div className="grid two lower-grid">
+        <section className="card">
+          <h2>Lab Updates</h2>
+          <p className="fineprint">Labs can push reports into the file but cannot unlock patient notes or doctor notes.</p>
+          <div className="stack small-stack">
+            {pathlabs.slice(0, 2).map((lab) => <div className="mini-row" key={lab.id}><strong>{lab.name}</strong><span>{lab.services.join(", ")} • Upload-only permission</span></div>)}
+          </div>
+        </section>
+        <section className="card">
+          <h2>Attendant & Pharmacy</h2>
+          <div className="stack small-stack">
+            {accommodations.slice(0, 2).map((stay) => <div className="mini-row" key={stay.id}><strong>{stay.name}</strong><span>{stay.available} available • {stay.price}</span></div>)}
+            {pharmacies.slice(0, 2).map((pharmacy) => <div className="mini-row" key={pharmacy.id}><strong>{pharmacy.name}</strong><span>{pharmacy.stock} • {pharmacy.delivery}</span></div>)}
           </div>
         </section>
       </div>
