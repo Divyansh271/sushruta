@@ -200,7 +200,7 @@ export const cases = [
     vitals: ["Weight 61 kg on 20 Aug", "Pain score 8/10 to 5/10", "Operated area photos not applicable"],
     createdAt: "2026-08-20T10:30:00.000Z",
     caseFile: {
-      passwordHint: "Demo password: case123",
+      passwordHint: "Case-file password configured",
       reports: ["Knee X-ray summary.pdf", "Inflammation marker report.jpg"],
       symptomImages: ["left-knee-swelling.jpg", "mobility-test-photo.jpg"],
       treatmentNotes: ["Initial Panchakarma plan drafted.", "Pain score moved from 8/10 to 5/10."],
@@ -233,7 +233,7 @@ export const cases = [
     vitals: ["Weight not updated", "Sleep score screenshot attached"],
     createdAt: "2026-08-23T15:45:00.000Z",
     caseFile: {
-      passwordHint: "Demo password: case123",
+      passwordHint: "Case-file password configured",
       reports: ["Previous prescription.png", "Diet journal.csv"],
       symptomImages: ["sleep-tracker-screenshot.jpg"],
       treatmentNotes: ["Awaiting hospital pickup.", "Lifestyle history captured."],
@@ -265,7 +265,7 @@ export const cases = [
     vitals: ["Weight 58 kg", "Before and after symptom images attached"],
     createdAt: "2026-08-12T09:00:00.000Z",
     caseFile: {
-      passwordHint: "Demo password: case123",
+      passwordHint: "Case-file password configured",
       reports: ["Allergy panel summary.pdf"],
       symptomImages: ["before-treatment.jpg", "after-treatment.jpg"],
       treatmentNotes: ["Topical routine shared.", "Case closed after improvement confirmation."],
@@ -299,7 +299,7 @@ export const cases = [
     vitals: ["Weight 52 kg on intake", "Fever 101.4 F", "Operated area photo pending"],
     createdAt: "2026-08-24T08:15:00.000Z",
     caseFile: {
-      passwordHint: "Demo password: case123",
+      passwordHint: "Case-file password configured",
       reports: ["Synovial fluid culture.pdf", "CBC and CRP report.jpg"],
       symptomImages: ["right-knee-swelling-day1.jpg", "mobility-video-placeholder.mp4"],
       treatmentNotes: ["Initial medicines did not improve symptoms.", "Transfer requested by H1 and accepted by H2 specialist."],

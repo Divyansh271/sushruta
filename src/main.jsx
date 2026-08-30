@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Link, NavLink, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { BrowserRouter, Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   appointments as appointmentSeed,
   accommodations,
@@ -27,6 +27,7 @@ const statusLabels = {
 };
 
 function App() {
+  const [darkMode, setDarkMode] = useState(false);
   const [cases, setCases] = useState(caseSeed);
   const [appointments, setAppointments] = useState(appointmentSeed);
   const [patientLocation, setPatientLocation] = useState("");
@@ -48,7 +49,7 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Shell>
+      <Shell darkMode={darkMode} setDarkMode={setDarkMode}>
         <Routes>
           <Route path="/" element={<Home data={data} />} />
           <Route path="/login" element={<AuthPage mode="Login" />} />
@@ -71,9 +72,9 @@ function App() {
   );
 }
 
-function Shell({ children }) {
+function Shell({ children, darkMode, setDarkMode }) {
   return (
-    <div>
+    <div className={darkMode ? "app-shell dark" : "app-shell"}>
       <header className="topbar">
         <Link className="brand" to="/">
           <span className="brand-mark">AY</span>
@@ -86,6 +87,7 @@ function Shell({ children }) {
           <NavLink to="/schemes">Schemes</NavLink>
           <NavLink to="/coordination">Care Network</NavLink>
           <NavLink to="/hospital/dashboard">Hospital Panel</NavLink>
+          <button className="theme-toggle" type="button" onClick={() => setDarkMode(!darkMode)} aria-label="Toggle dark mode">{darkMode ? "☀ Light" : "☾ Dark"}</button>
         </nav>
       </header>
       <main>{children}</main>
@@ -165,6 +167,8 @@ function AuthPage({ mode }) {
 
 function Dashboard({ data }) {
   const featuredCase = data.cases.find((item) => item.id === "case-104") || data.cases[0];
+  const navigate = useNavigate();
+  const [selectedCase, setSelectedCase] = useState(null);
   return (
     <Page title="Patient Dashboard" action={<Link className="btn primary" to="/cases/new">Raise New Case</Link>}>
       <div className="alert-band feature-strip">
@@ -173,26 +177,25 @@ function Dashboard({ data }) {
           <h2>{featuredCase.title}</h2>
           <p>{featuredCase.transferHistory?.join(" -> ")}</p>
         </div>
-        <Link className="btn secondary" to={`/cases/${featuredCase.id}`}>Open Case File</Link>
+          <button className="btn secondary" onClick={() => setSelectedCase(featuredCase)}>Open Case File</button>
       </div>
       <div className="grid cards feature-strip">
-        <InfoTile title="Security Ready" text="Prototype marks case files as password-protected and audit-ready for ISO 27001, CERT-In, and ABDM-style controls." />
-        <InfoTile title="Nearby Matching" text="Raised cases can be discovered by hospitals using dummy distance, region, and expertise matching." />
-        <InfoTile title="Guest-to-Verified Flow" text="Patients can browse as guests, then login with own auth, Google/Facebook, or DigiLocker before raising a case." />
+        <InfoTile title="Case files" text="Open a protected file to view treatment records, reports, images and care updates." />
+        <InfoTile title="Nearby matching" text="Hospitals receive cases based on location and clinical expertise." />
+        <InfoTile title="Identity options" text="Sign in with account, Google, Facebook or DigiLocker." />
       </div>
       <div className="grid two">
         <section>
           <h2>Active Cases</h2>
           <div className="stack">
             {data.cases.slice(0, 4).map((item) => (
-              <Link className="card case-card" key={item.id} to={`/cases/${item.id}`}>
+              <button className="card case-card case-file-row" key={item.id} onClick={() => setSelectedCase(item)}>
                 <div>
                   <span className={`pill ${item.status}`}>{statusLabels[item.status]}</span>
                   <h3>{item.title}</h3>
-                  <p>{item.symptoms}</p>
                 </div>
-                <span className="muted">{item.location} • {item.urgency} urgency</span>
-              </Link>
+                <span className="muted">Protected case file</span>
+              </button>
             ))}
           </div>
         </section>
@@ -216,6 +219,7 @@ function Dashboard({ data }) {
           </div>
         </section>
       </div>
+      {selectedCase && <CaseAccessModal caseTitle={selectedCase.title} onClose={() => setSelectedCase(null)} onGranted={() => navigate(`/cases/${selectedCase.id}`, { state: { accessGranted: true } })} />}
     </Page>
   );
 }
@@ -261,7 +265,6 @@ function NewCase({ data }) {
       vitals: ["Weight pending", "Symptom images pending"],
       createdAt: new Date().toISOString(),
       caseFile: {
-        passwordHint: "Demo password: case123",
         reports: ["Uploaded report placeholder"],
         symptomImages: ["Symptom image placeholder"],
         treatmentNotes: ["Case file created and locked for authorized users."],
@@ -311,10 +314,9 @@ function NewCase({ data }) {
 function CaseDetail({ data }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const item = data.cases.find((caseItem) => caseItem.id === id) || data.cases[0];
-  const [unlocked, setUnlocked] = useState(false);
-  const [password, setPassword] = useState("");
-  const [accessMessage, setAccessMessage] = useState("");
+  const [unlocked, setUnlocked] = useState(Boolean(location.state?.accessGranted));
   const nearbyHospitals = hospitals
     .filter((hospital) => item.requiredExpertise?.some((tag) => hospital.specialties.includes(tag) || hospital.expertiseBranches.includes(tag)))
     .slice(0, 3);
@@ -322,14 +324,9 @@ function CaseDetail({ data }) {
   const currentDoctor = doctors.find((doctor) => doctor.id === item.currentDoctorId);
   const currentHospital = hospitals.find((hospital) => hospital.id === item.currentHospitalId);
   const choiceHospitals = item.hospitalChoiceList?.map((hospitalId) => hospitals.find((hospital) => hospital.id === hospitalId)).filter(Boolean) || [];
-  const unlockFile = () => {
-    if (password === "case123") {
-      setUnlocked(true);
-      setAccessMessage("Access granted for this demo. An audit timestamp would be written by the secure backend.");
-    } else {
-      setAccessMessage("Incorrect demo password. Use case123 to view the prototype case file.");
-    }
-  };
+  if (!unlocked) {
+    return <CaseAccessModal caseTitle={item.title} onGranted={() => setUnlocked(true)} />;
+  }
   const recordDummyPayment = () => {
     const paymentIndex = item.payments?.findIndex((payment) => payment.status !== "Paid") ?? -1;
     if (paymentIndex < 0) {
@@ -373,20 +370,7 @@ function CaseDetail({ data }) {
         </section>
       </div>
       <div className="grid two lower-grid">
-        <section className="card">
-          <h2>Password-Protected Case File</h2>
-          <p className="fineprint">{item.privacy}</p>
-          {!unlocked ? (
-            <div className="unlock-box">
-              <p className="muted">{item.caseFile?.passwordHint}</p>
-              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter demo password" />
-              <button className="btn primary" onClick={unlockFile}>Unlock File</button>
-              {accessMessage && <p className={unlocked ? "success" : "error-text"}>{accessMessage}</p>}
-            </div>
-          ) : (
-            <CaseFile file={item.caseFile} vitals={item.vitals} />
-          )}
-        </section>
+        <section className="card"><h2>Case File</h2><CaseFile file={item.caseFile} vitals={item.vitals} /></section>
         <section className="card">
           <h2>Nearby Hospital Matches</h2>
           <div className="mock-map">
@@ -805,6 +789,33 @@ function ReviewForm() {
         {done && <p className="success">Review submitted successfully for demo.</p>}
       </form>
     </Page>
+  );
+}
+
+function CaseAccessModal({ caseTitle, onGranted, onClose }) {
+  const navigate = useNavigate();
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const unlock = (event) => {
+    event.preventDefault();
+    if (password === "qwerty12345") {
+      onGranted();
+      return;
+    }
+    setError("Incorrect password.");
+  };
+  const close = () => onClose ? onClose() : navigate("/dashboard");
+  return (
+    <section className="case-access-page">
+      <form className="modal card access-modal" onSubmit={unlock}>
+        <span className="eyebrow">Protected health record</span>
+        <h1>{caseTitle}</h1>
+        <p>Enter the case-file password to continue.</p>
+        <label>Case-file password<input autoFocus type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" /></label>
+        {error && <p className="error-text">{error}</p>}
+        <div className="actions"><button className="btn primary" type="submit">Open Case File</button><button className="btn ghost" type="button" onClick={close}>Cancel</button></div>
+      </form>
+    </section>
   );
 }
 
