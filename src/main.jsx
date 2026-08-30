@@ -23,28 +23,30 @@ const statusLabels = {
   closed: "Closed",
   accepted: "Accepted",
   rejected: "Rejected",
+  "not-selected": "Not selected",
 };
 
 function App() {
   const [cases, setCases] = useState(caseSeed);
   const [appointments, setAppointments] = useState(appointmentSeed);
+  const [patientLocation, setPatientLocation] = useState("");
   const [applications, setApplications] = useState([
-    { id: "app-1", caseId: "case-101", patientName: "Meera Sharma", hospitalId: "hosp-1", status: "raised" },
-    { id: "app-2", caseId: "case-102", patientName: "Arjun Rao", hospitalId: "hosp-2", status: "raised" },
-    { id: "app-3", caseId: "case-103", patientName: "Fatima Khan", hospitalId: "hosp-4", status: "raised" },
+    { id: "app-1", caseId: "case-101", patientName: "Meera Sharma", hospitalId: "hosp-1", status: "accepted" },
+    { id: "app-2", caseId: "case-102", patientName: "Arjun Rao", hospitalId: "hosp-5", status: "raised" },
+    { id: "app-3", caseId: "case-103", patientName: "Fatima Khan", hospitalId: "hosp-4", status: "accepted" },
     { id: "app-4", caseId: "case-104", patientName: "Ishaan Verma", hospitalId: "hosp-2", status: "accepted" },
   ]);
 
   const data = useMemo(
-    () => ({ cases, setCases, appointments, setAppointments, applications, setApplications }),
-    [cases, appointments, applications],
+    () => ({ cases, setCases, appointments, setAppointments, applications, setApplications, patientLocation, setPatientLocation }),
+    [cases, appointments, applications, patientLocation],
   );
 
   return (
     <BrowserRouter>
       <Shell>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Home data={data} />} />
           <Route path="/login" element={<AuthPage mode="Login" />} />
           <Route path="/signup" element={<AuthPage mode="Sign Up" />} />
           <Route path="/dashboard" element={<Dashboard data={data} />} />
@@ -87,7 +89,12 @@ function Shell({ children }) {
   );
 }
 
-function Home() {
+function Home({ data }) {
+  const [manualLocation, setManualLocation] = useState(data.patientLocation);
+  const saveLocation = (location) => {
+    const nextLocation = location || manualLocation.trim();
+    if (nextLocation) data.setPatientLocation(nextLocation);
+  };
   return (
     <section className="hero">
       <div className="hero-copy">
@@ -101,6 +108,16 @@ function Home() {
         <div className="actions">
           <Link className="btn primary" to="/login">Login</Link>
           <Link className="btn secondary" to="/signup">Sign Up</Link>
+        </div>
+        <div className="location-card">
+          <span className="eyebrow">Location setup</span>
+          <strong>{data.patientLocation || "Set a location to prioritise nearby care"}</strong>
+          <div className="location-actions">
+            <input value={manualLocation} onChange={(event) => setManualLocation(event.target.value)} placeholder="City, State" aria-label="Patient location" />
+            <button className="btn ghost" type="button" onClick={() => saveLocation()}>Save location</button>
+            <button className="link-button light" type="button" onClick={() => { setManualLocation("Jaipur, Rajasthan"); saveLocation("Jaipur, Rajasthan"); }}>Use demo GPS</button>
+          </div>
+          <small>Maps is a safe integration point in this prototype; no location is transmitted to a third party.</small>
         </div>
       </div>
       <div className="hero-panel">
@@ -124,13 +141,14 @@ function AuthPage({ mode }) {
         {isSignup && <input placeholder="Full name" />}
         {isSignup && <input placeholder="Age / gender, e.g. 17M" />}
         {isSignup && <input placeholder="City, state" />}
+        {isSignup && <label>I am registering as<select defaultValue="Patient"><option>Patient</option><option>Hospital representative</option><option>Doctor</option><option>Lab representative</option></select></label>}
         <input type="email" placeholder="Email or mobile number" />
         <input type="password" placeholder="Password" />
         <button className="btn primary full" type="submit">{mode}</button>
         <div className="divider">or</div>
-        <button className="btn ghost full" type="button">Continue with Google</button>
-        <button className="btn ghost full" type="button">Continue with Facebook</button>
-        <button className="btn ghost full" type="button">Continue with DigiLocker</button>
+        <button className="btn ghost full" type="button" onClick={() => navigate("/dashboard")}>Continue with Google</button>
+        <button className="btn ghost full" type="button" onClick={() => navigate("/dashboard")}>Continue with Facebook</button>
+        <button className="btn ghost full" type="button" onClick={() => navigate("/dashboard")}>Continue with DigiLocker</button>
         <p className="fineprint">DigiLocker placeholder can later fetch Ayushman card, identity documents, and consented health paperwork.</p>
         <p className="muted">
           {isSignup ? "Already registered?" : "New to the platform?"}{" "}
@@ -242,6 +260,17 @@ function NewCase({ data }) {
       ],
     };
     data.setCases([nextCase, ...data.cases]);
+    const selectedHospitals = [form.choice1, form.choice2].filter(Boolean);
+    data.setApplications([
+      ...selectedHospitals.map((hospitalId, index) => ({
+        id: `app-${Date.now()}-${index}`,
+        caseId: nextCase.id,
+        patientName: "Meera Sharma",
+        hospitalId,
+        status: "raised",
+      })),
+      ...data.applications,
+    ]);
     navigate("/dashboard");
   }
 
@@ -257,8 +286,9 @@ function NewCase({ data }) {
         <label>Location<input name="location" value={form.location} onChange={update} placeholder="City, State" /></label>
         <label>Preferred hospital, choice 1<select name="choice1" value={form.choice1} onChange={update}>{hospitals.map((hospital) => <option value={hospital.id} key={hospital.id}>{hospital.name}</option>)}</select></label>
         <label>Preferred hospital, choice 2<select name="choice2" value={form.choice2} onChange={update}>{hospitals.map((hospital) => <option value={hospital.id} key={hospital.id}>{hospital.name}</option>)}</select></label>
-        <label>Attach reports<input type="file" /></label>
-        <p className="fineprint">Google Maps, file upload storage, DigiLocker documents, and location permissions are represented as UI-only placeholders.</p>
+        <label>Attach reports<input type="file" multiple /></label>
+        <div className="consent-note"><strong>Consent captured for this demo.</strong> The patient controls who can view the case file; selected hospitals only receive a triage summary until they accept.</div>
+        <p className="fineprint">Maps, file storage, and DigiLocker are intentionally simulated in this front-end prototype. Production requires patient consent, encrypted storage, and server-side access controls.</p>
         <button className="btn primary" type="submit">Submit Case</button>
       </form>
     </Page>
@@ -270,6 +300,8 @@ function CaseDetail({ data }) {
   const navigate = useNavigate();
   const item = data.cases.find((caseItem) => caseItem.id === id) || data.cases[0];
   const [unlocked, setUnlocked] = useState(false);
+  const [password, setPassword] = useState("");
+  const [accessMessage, setAccessMessage] = useState("");
   const nearbyHospitals = hospitals
     .filter((hospital) => item.requiredExpertise?.some((tag) => hospital.specialties.includes(tag) || hospital.expertiseBranches.includes(tag)))
     .slice(0, 3);
@@ -277,8 +309,38 @@ function CaseDetail({ data }) {
   const currentDoctor = doctors.find((doctor) => doctor.id === item.currentDoctorId);
   const currentHospital = hospitals.find((hospital) => hospital.id === item.currentHospitalId);
   const choiceHospitals = item.hospitalChoiceList?.map((hospitalId) => hospitals.find((hospital) => hospital.id === hospitalId)).filter(Boolean) || [];
+  const unlockFile = () => {
+    if (password === "case123") {
+      setUnlocked(true);
+      setAccessMessage("Access granted for this demo. An audit timestamp would be written by the secure backend.");
+    } else {
+      setAccessMessage("Incorrect demo password. Use case123 to view the prototype case file.");
+    }
+  };
+  const recordDummyPayment = () => {
+    const paymentIndex = item.payments?.findIndex((payment) => payment.status !== "Paid") ?? -1;
+    if (paymentIndex < 0) {
+      setAccessMessage("All recorded installments are already marked paid in this demo.");
+      return;
+    }
+    data.setCases(data.cases.map((caseItem) => caseItem.id !== item.id ? caseItem : {
+      ...caseItem,
+      payments: caseItem.payments.map((payment, index) => index === paymentIndex ? { ...payment, status: "Demo paid" } : payment),
+      timeline: [...caseItem.timeline, { at: "Just now", label: "Dummy payment recorded", note: "No payment was processed. This is an SBI MOPS integration placeholder." }],
+    }));
+  };
+  const withdrawCase = () => {
+    if (item.status === "closed") return;
+    data.setCases(data.cases.map((caseItem) => caseItem.id !== item.id ? caseItem : {
+      ...caseItem,
+      status: "closed",
+      privacy: "Case withdrawn by the patient. Historical access remains restricted and audit logged.",
+      transferHistory: [...caseItem.transferHistory, "Patient withdrew case"],
+      timeline: [...caseItem.timeline, { at: "Just now", label: "Case withdrawn", note: "Only the patient can close or withdraw an active case." }],
+    }));
+  };
   return (
-    <Page title={item.title} action={<button className="btn primary" onClick={() => navigate("/hospitals")}>Apply to Hospital</button>}>
+    <Page title={item.title} action={<div className="actions"><button className="btn primary" onClick={() => navigate("/hospitals")}>Choose Hospital</button>{item.status !== "closed" && <button className="btn danger" onClick={withdrawCase}>Withdraw Case</button>}</div>}>
       <div className="grid two">
         <section className="card detail">
           <span className={`pill ${item.status}`}>{statusLabels[item.status]}</span>
@@ -304,11 +366,12 @@ function CaseDetail({ data }) {
           {!unlocked ? (
             <div className="unlock-box">
               <p className="muted">{item.caseFile?.passwordHint}</p>
-              <input type="password" placeholder="Enter demo password" />
-              <button className="btn primary" onClick={() => setUnlocked(true)}>Unlock File</button>
+              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter demo password" />
+              <button className="btn primary" onClick={unlockFile}>Unlock File</button>
+              {accessMessage && <p className={unlocked ? "success" : "error-text"}>{accessMessage}</p>}
             </div>
           ) : (
-            <CaseFile file={item.caseFile} />
+            <CaseFile file={item.caseFile} vitals={item.vitals} />
           )}
         </section>
         <section className="card">
@@ -349,7 +412,8 @@ function CaseDetail({ data }) {
               </div>
             ))}
           </div>
-          <button className="btn secondary section-actions">Pay Next Installment</button>
+          <button className="btn secondary section-actions" onClick={recordDummyPayment}>Record Dummy SBI MOPS Payment</button>
+          <p className="fineprint">No banking details are requested, stored, or transmitted by this prototype.</p>
         </section>
         <section className="card">
           <h2>Transfer & Access History</h2>
@@ -564,33 +628,84 @@ function Schemes() {
 }
 
 function HospitalPanel({ data }) {
-  const updateStatus = (id, status) => {
-    data.setApplications(data.applications.map((app) => app.id === id ? { ...app, status } : app));
+  const [hospitalId, setHospitalId] = useState("hosp-5");
+  const hospital = hospitals.find((item) => item.id === hospitalId);
+  const hospitalDoctors = doctors.filter((doctor) => doctor.hospitalId === hospitalId);
+  const applications = data.applications.filter((application) => application.hospitalId === hospitalId);
+  const availableCases = data.cases.filter((caseItem) => {
+    const isMatching = caseItem.requiredExpertise?.some((tag) => hospital.specialties.includes(tag) || hospital.expertiseBranches.includes(tag));
+    return caseItem.status === "raised" && !caseItem.currentHospitalId && isMatching;
+  });
+  const acceptCase = (caseId, applicationId) => {
+    const caseItem = data.cases.find((item) => item.id === caseId);
+    const assignedDoctor = hospitalDoctors.find((doctor) => caseItem.requiredExpertise?.some((tag) => doctor.specialties.includes(tag))) || hospitalDoctors[0];
+    data.setCases(data.cases.map((item) => item.id !== caseId ? item : {
+      ...item,
+      status: "in-progress",
+      currentHospitalId: hospitalId,
+      currentDoctorId: assignedDoctor?.id || null,
+      privacy: `Only patient and ${assignedDoctor?.name || "the assigned doctor"} can access the current case file. Labs remain upload-only.`,
+      transferHistory: [...item.transferHistory, `${hospital.name} accepted the case`, `Current owner: ${assignedDoctor?.name || hospital.name}`],
+      timeline: [...item.timeline, { at: "Just now", label: "Case accepted", note: `${hospital.name} assigned ${assignedDoctor?.name || "its care team"}. Patient notification is queued.` }],
+    }));
+    data.setApplications([
+      ...(applicationId ? data.applications.map((application) => application.caseId === caseId ? {
+        ...application,
+        status: application.id === applicationId ? "accepted" : "not-selected",
+      } : application) : [{
+        id: `app-${Date.now()}`,
+        caseId,
+        patientName: patients.find((patient) => patient.id === caseItem?.patientId)?.name || "Patient",
+        hospitalId,
+        status: "accepted",
+      }, ...data.applications]),
+    ]);
+  };
+  const rejectApplication = (id) => {
+    data.setApplications(data.applications.map((application) => application.id === id ? { ...application, status: "rejected" } : application));
   };
   return (
-    <Page title="Hospital Panel">
+    <Page title="Hospital Panel" action={<label className="panel-selector">Acting as<select value={hospitalId} onChange={(event) => setHospitalId(event.target.value)}>{hospitals.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}>
       <div className="grid two lower-grid">
-        <InfoTile title="Nearby Raised Cases" text="Hospitals can discover cases by region, distance, urgency, and required branch of Ayush expertise." />
-        <InfoTile title="Operations Requests" text="Panel placeholders cover document filling, pathlab coordination, scans, and immediate pharmaceutical supplies." />
+        <InfoTile title="Case pickup policy" text="Before accepting, the hospital sees a triage summary. After pickup it becomes responsible for care and may only transfer—not drop—the case." />
+        <InfoTile title="Operations desk" text="Coordinate digitised paperwork, pathlab uploads, scans and time-sensitive pharmaceutical supply requests from one queue." />
       </div>
-      <div className="grid cards">
-        {data.applications.map((app) => {
+      <section className="lower-grid">
+        <h2>Patient choice-list applications</h2>
+        <div className="grid cards">
+        {applications.length ? applications.map((app) => {
           const caseItem = data.cases.find((item) => item.id === app.caseId);
-          const hospital = hospitals.find((item) => item.id === app.hospitalId);
           return (
             <article className="card" key={app.id}>
               <span className={`pill ${app.status}`}>{statusLabels[app.status]}</span>
               <h3>{app.patientName}</h3>
               <p>{caseItem?.title || "New case application"} for {hospital?.name}</p>
               <TagRow tags={caseItem?.requiredExpertise || []} />
-              <div className="actions">
-                <button className="btn primary" onClick={() => updateStatus(app.id, "accepted")}>Accept</button>
-                <button className="btn danger" onClick={() => updateStatus(app.id, "rejected")}>Reject</button>
-              </div>
+              {app.status === "raised" && !caseItem?.currentHospitalId && <div className="actions">
+                <button className="btn primary" onClick={() => acceptCase(app.caseId, app.id)}>Accept & Assign Doctor</button>
+                <button className="btn danger" onClick={() => rejectApplication(app.id)}>Decline Before Pickup</button>
+              </div>}
+              {app.status === "accepted" && <p className="success">Case is assigned. Use a formal transfer request if clinical escalation is needed.</p>}
+              {app.status === "not-selected" && <p className="muted">This case has been assigned to another hospital from the patient’s choice list.</p>}
             </article>
           );
-        })}
-      </div>
+        }) : <p className="muted">No patient choice-list applications for this hospital yet.</p>}
+        </div>
+      </section>
+      <section className="lower-grid">
+        <h2>Matching regional cases</h2>
+        <p className="fineprint">These patients did not name this hospital first. A hospital can offer to pick up a matching case; the patient receives an acceptance notification.</p>
+        <div className="grid cards">
+          {availableCases.filter((caseItem) => !applications.some((app) => app.caseId === caseItem.id)).map((caseItem) => <article className="card" key={caseItem.id}>
+            <span className="pill raised">Open regional case</span>
+            <h3>{caseItem.title}</h3>
+            <p>{caseItem.location} • {caseItem.urgency} urgency</p>
+            <TagRow tags={caseItem.requiredExpertise} />
+            <button className="btn primary" onClick={() => acceptCase(caseItem.id)}>Offer Pickup & Assign Doctor</button>
+          </article>)}
+          {!availableCases.filter((caseItem) => !applications.some((app) => app.caseId === caseItem.id)).length && <p className="muted">No unrequested regional cases match this hospital’s listed expertise.</p>}
+        </div>
+      </section>
     </Page>
   );
 }
@@ -611,7 +726,7 @@ function ReviewForm() {
   );
 }
 
-function CaseFile({ file }) {
+function CaseFile({ file, vitals = [] }) {
   return (
     <div className="case-file">
       <h3>Reports</h3>
@@ -620,6 +735,8 @@ function CaseFile({ file }) {
       <ul className="clean-list">{file?.symptomImages.map((item) => <li key={item}>{item}</li>)}</ul>
       <h3>Treatment Notes</h3>
       <ul className="clean-list">{file?.treatmentNotes.map((item) => <li key={item}>{item}</li>)}</ul>
+      <h3>Timestamped observations</h3>
+      <ul className="clean-list">{vitals.map((item) => <li key={item}>{item}</li>)}</ul>
     </div>
   );
 }

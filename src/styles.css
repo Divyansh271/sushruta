@@ -132,6 +132,38 @@ nav a:hover {
   font-size: 2.2rem;
 }
 
+.location-card {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  margin-top: 28px;
+  max-width: 660px;
+  padding: 16px;
+}
+
+.location-card input {
+  background: rgba(255, 255, 255, 0.94);
+  min-width: 200px;
+}
+
+.location-card small {
+  opacity: 0.85;
+}
+
+.location-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.light {
+  color: #fff;
+}
+
 .eyebrow {
   color: inherit;
   font-size: 0.8rem;
@@ -415,6 +447,25 @@ textarea {
   color: #6c7b70;
   font-size: 0.88rem;
   margin-bottom: 0;
+}
+
+.consent-note {
+  background: #edf6f1;
+  border-left: 4px solid #0d6b57;
+  border-radius: 8px;
+  color: #315142;
+  padding: 12px 14px;
+}
+
+.error-text {
+  color: #a32c2c;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.panel-selector {
+  min-width: min(360px, 90vw);
 }
 
 .section-actions {
