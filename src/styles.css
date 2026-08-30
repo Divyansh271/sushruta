@@ -457,6 +457,21 @@ textarea {
   padding: 12px 14px;
 }
 
+.ai-card {
+  background: linear-gradient(135deg, #edf6f1, #f5f8e8);
+  border: 1px solid #cfe1d6;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.ai-card p {
+  color: #53675a;
+  font-size: 0.9rem;
+  margin: 4px 0 0;
+}
+
 .error-text {
   color: #a32c2c;
   font-size: 0.9rem;

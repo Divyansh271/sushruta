@@ -30,6 +30,10 @@ function App() {
   const [cases, setCases] = useState(caseSeed);
   const [appointments, setAppointments] = useState(appointmentSeed);
   const [patientLocation, setPatientLocation] = useState("");
+  const [coordinationRequests, setCoordinationRequests] = useState([
+    { id: "req-1", type: "Lab report", caseId: "case-104", partner: "Jaipur Ayush Pathlab", status: "Report uploaded", createdAt: "26 Aug, 09:10 AM" },
+    { id: "req-2", type: "Medicine supply", caseId: "case-101", partner: "Swasthya Pharmacy", status: "Ready for patient", createdAt: "26 Aug, 05:20 PM" },
+  ]);
   const [applications, setApplications] = useState([
     { id: "app-1", caseId: "case-101", patientName: "Meera Sharma", hospitalId: "hosp-1", status: "accepted" },
     { id: "app-2", caseId: "case-102", patientName: "Arjun Rao", hospitalId: "hosp-5", status: "raised" },
@@ -38,8 +42,8 @@ function App() {
   ]);
 
   const data = useMemo(
-    () => ({ cases, setCases, appointments, setAppointments, applications, setApplications, patientLocation, setPatientLocation }),
-    [cases, appointments, applications, patientLocation],
+    () => ({ cases, setCases, appointments, setAppointments, applications, setApplications, patientLocation, setPatientLocation, coordinationRequests, setCoordinationRequests }),
+    [cases, appointments, applications, patientLocation, coordinationRequests],
   );
 
   return (
@@ -57,7 +61,7 @@ function App() {
           <Route path="/doctors/:id" element={<DoctorProfile />} />
           <Route path="/appointments" element={<Appointments data={data} />} />
           <Route path="/schemes" element={<Schemes />} />
-          <Route path="/coordination" element={<CoordinationHub />} />
+          <Route path="/coordination" element={<CoordinationHub data={data} />} />
           <Route path="/hospital/dashboard" element={<HospitalPanel data={data} />} />
           <Route path="/reviews/:targetId" element={<ReviewForm />} />
           <Route path="*" element={<NotFound />} />
@@ -218,6 +222,7 @@ function Dashboard({ data }) {
 
 function NewCase({ data }) {
   const navigate = useNavigate();
+  const [triage, setTriage] = useState("");
   const [form, setForm] = useState({
     title: "",
     symptoms: "",
@@ -228,6 +233,13 @@ function NewCase({ data }) {
     choice2: hospitals[1].id,
   });
   const update = (event) => setForm({ ...form, [event.target.name]: event.target.value });
+  const assistTriage = () => {
+    const notes = `${form.title} ${form.symptoms}`.toLowerCase();
+    const urgent = /fever|severe|chest|breath|bleed|unconscious|sudden/.test(notes);
+    const branch = /skin|itch|rash/.test(notes) ? "Dermatology / Siddha" : /joint|knee|bone|mobility/.test(notes) ? "Orthopedics / Pain Management" : /sleep|stress|anxiety/.test(notes) ? "Yoga / Unani lifestyle care" : "Ayurveda general consultation";
+    setTriage(`${urgent ? "High-priority symptoms detected — seek emergency care if symptoms are severe or worsening. " : "Initial routing suggestion: "}${branch}. This assistant does not diagnose or replace a clinician.`);
+    if (urgent) setForm({ ...form, urgency: "High" });
+  };
 
   function submit(event) {
     event.preventDefault();
@@ -279,6 +291,7 @@ function NewCase({ data }) {
       <form className="card form-grid" onSubmit={submit}>
         <label>Case title<input name="title" value={form.title} onChange={update} placeholder="Recurring migraine and fatigue" /></label>
         <label>Symptoms<textarea name="symptoms" value={form.symptoms} onChange={update} placeholder="Describe symptoms, duration, and severity" /></label>
+        <div className="ai-card"><div><strong>AI-assisted case helper</strong><p>Summarises the entered complaint and suggests routing; it never diagnoses.</p></div><button className="btn ghost" type="button" onClick={assistTriage}>Get routing suggestion</button>{triage && <p className="success">{triage}</p>}</div>
         <label>Required expertise<select name="expertise" value={form.expertise} onChange={update}>
           <option>Ayurveda</option><option>Panchakarma</option><option>Siddha</option><option>Unani</option><option>Yoga</option><option>Naturopathy</option><option>Dermatology</option><option>Orthopedics</option><option>Rheumatology support</option>
         </select></label>
@@ -623,6 +636,75 @@ function Schemes() {
           </div>
         </div>
       )}
+    </Page>
+  );
+}
+
+function CoordinationHub({ data }) {
+  const [type, setType] = useState("Lab test");
+  const [caseId, setCaseId] = useState(data.cases.find((item) => item.status !== "closed")?.id || data.cases[0]?.id);
+  const [partnerId, setPartnerId] = useState(pathlabs[0].id);
+  const [notice, setNotice] = useState("");
+  const partners = type === "Medicine supply" ? pharmacies : pathlabs;
+
+  const changeType = (nextType) => {
+    setType(nextType);
+    setPartnerId((nextType === "Medicine supply" ? pharmacies : pathlabs)[0].id);
+  };
+  const createRequest = (event) => {
+    event.preventDefault();
+    const partner = partners.find((item) => item.id === partnerId);
+    const selectedCase = data.cases.find((item) => item.id === caseId);
+    const request = {
+      id: `req-${Date.now()}`,
+      type,
+      caseId,
+      partner: partner?.name || "Care partner",
+      status: type === "Medicine supply" ? "Supply request sent" : "Lab slot requested",
+      createdAt: "Just now",
+    };
+    data.setCoordinationRequests([request, ...data.coordinationRequests]);
+    if (type !== "Medicine supply" && selectedCase) {
+      data.setCases(data.cases.map((item) => item.id !== caseId ? item : {
+        ...item,
+        timeline: [...item.timeline, { at: "Just now", label: "Lab coordination requested", note: `${partner?.name} received an upload-only request. The lab cannot read the case file.` }],
+      }));
+    }
+    setNotice(`${request.status}. This is a safe demo request; no patient file was shared.`);
+  };
+  const reserveStay = (stay) => setNotice(`${stay.name} is held for this demo at ${stay.price}. No payment has been taken.`);
+
+  return (
+    <Page title="Care Network & Coordination">
+      <div className="grid cards feature-strip">
+        {networkChains.map((chain) => <InfoTile key={chain.id} title={chain.name} text={`${chain.members} — ${chain.focus}`} />)}
+        <InfoTile title="Access rule" text="Labs upload reports only. Only the patient and current doctor can unlock case notes and attachments." />
+      </div>
+      <div className="grid two">
+        <form className="card form-grid" onSubmit={createRequest}>
+          <h2>Coordinate a lab or pharmacy request</h2>
+          <label>Request type<select value={type} onChange={(event) => changeType(event.target.value)}><option>Lab test</option><option>Scan</option><option>Medicine supply</option></select></label>
+          <label>Case<select value={caseId} onChange={(event) => setCaseId(event.target.value)}>{data.cases.filter((item) => item.status !== "closed").map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
+          <label>{type === "Medicine supply" ? "Pharmacy" : "Pathlab"}<select value={partnerId} onChange={(event) => setPartnerId(event.target.value)}>{partners.map((partner) => <option key={partner.id} value={partner.id}>{partner.name}</option>)}</select></label>
+          <button className="btn primary" type="submit">Send Secure Demo Request</button>
+          {notice && <p className="success">{notice}</p>}
+        </form>
+        <section className="card">
+          <h2>Recent coordination</h2>
+          <div className="stack small-stack">
+            {data.coordinationRequests.map((request) => {
+              const relatedCase = data.cases.find((item) => item.id === request.caseId);
+              return <div className="mini-row" key={request.id}><strong>{request.type} · {request.partner}</strong><span>{relatedCase?.title || "Case"} • {request.status} • {request.createdAt}</span></div>;
+            })}
+          </div>
+        </section>
+      </div>
+      <section className="lower-grid">
+        <h2>Attendant stay availability</h2>
+        <div className="grid cards">
+          {accommodations.map((stay) => <article className="card" key={stay.id}><h3>{stay.name}</h3><p>{stay.type} • {stay.city}</p><p className="muted">{stay.available} rooms available • {stay.price}</p><button className="btn secondary" onClick={() => reserveStay(stay)}>Reserve Demo Stay</button></article>)}
+        </div>
+      </section>
     </Page>
   );
 }
